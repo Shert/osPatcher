@@ -4,7 +4,7 @@
 
 # patcher for linux deb/rpm based systems
 #
-# 2021-06-23 Mario Caruso
+# 2021-06-28 Mario Caruso
 #
 
 function printHelp ()
@@ -154,12 +154,6 @@ function generateJsonRecipients
 function main()
 {
    setDefaults
-   
-   if [[ -n ${configFile} ]];then
-      if [[ -s ${configFile} ]];then
-         source ${configFile}
-      fi
-   fi
      
    while [[ "$#" > 0 ]]
    do
@@ -213,6 +207,12 @@ function main()
       esac
       shift
    done
+   
+   if [[ -n ${configFile} ]];then
+      if [[ -s ${configFile} ]];then
+         source ${configFile}
+      fi
+   fi
    
    if [[ -n ${statusFile} ]];then
       if [[ -s ${statusFile} ]];then
