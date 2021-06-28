@@ -15,7 +15,7 @@ function printHelp ()
    echo "opzioni : -d|--dryrun"
    echo "opzioni : -nm|--noMail (non invia le e-mail di notifica)"
    echo "opzioni : -nr|--noReboot (non esegue il reboot del server)"
-   echo "opzioni : -w=|--whenToRun= (15|1Tue|3Tue|2Wed|now)"
+   echo "opzioni : -w=|--whenToRun= (15|15+5|1Tue|3Tue|2Wed|now)"
    echo "opzioni : -r=|--recipients= indirizzi email (separati da virgola) a cui inviare notifiche"
    echo "opzioni : -h=|--help= mostra questo help"
 }
@@ -46,6 +46,12 @@ function checkIfIShouldRun ()
    case ${whenToRun} in
       15)
          if [[ "${dayOfMonth}" == "${whenToRun}" ]];then
+            shouldIRun='True'
+         fi
+      ;;
+      
+      15+5)
+         if [[ ${dayOfMonth} -ge 23 && "${dayOfWeek}" !=  "Sat" && "${dayOfWeek}" !=  "Sun" ]];then
             shouldIRun='True'
          fi
       ;;
@@ -113,7 +119,7 @@ function validateNeeds ()
       done
    
    ### validazione valore di myExpectedStart
-   if [[ ! "${whenToRun}" =~ ^(15|3Tue|2Wed|never|now) ]] ;then
+   if [[ ! "${whenToRun}" =~ ^(15|15+5|3Tue|2Wed|never|now) ]] ;then
       echo "Error: value ${whenToRun} for whenToRun is not valid/accepted"
       exit 5
    fi
@@ -240,7 +246,7 @@ function main()
       if [[ "${shouldISendEmail}" == "True" ]];then
          sendNotificationEmail
       fi
-      if [[ ${shouldIReboot} == "True" ]];then
+      if [[ "${shouldIReboot}" == "True" ]];then
          reboot
       fi
    fi
