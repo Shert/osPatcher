@@ -11,6 +11,8 @@ function printHelp ()
 {
    echo "Questo script aggiorna le patches di OS sul server in cui viene eseguito"
    echo "opzioni : -t=|--updatetool= (apt|yum)"
+   echo "opzioni : -s=|--statusFile= path del file dove e' salvata la data di ultima applicazione patches"
+   echo "opzioni : -c=|--configFile= path del file di configurazione"
    echo "opzioni : -f|--forceRun"
    echo "opzioni : -d|--dryrun"
    echo "opzioni : -nm|--noMail (non invia le e-mail di notifica)"
@@ -33,7 +35,9 @@ function setDefaults ()
    whenToRun='never'
    recipients='costacmg-ux@eng.it'
    jsonRecipients=''
-   
+   statusFile="osPatcher.stats"
+   configFile=""
+   lastPatchDate="0"
 }
 
 function checkIfIShouldRun ()
@@ -52,7 +56,11 @@ function checkIfIShouldRun ()
       
       15+5)
          if [[ ${dayOfMonth} -ge 23 && "${dayOfWeek}" !=  "Sat" && "${dayOfWeek}" !=  "Sun" ]];then
-            shouldIRun='True'
+            nowDate=$(date +%s)            
+            daysSinceLastPatch=$((${nowDate} - ${lastPatchDate}))
+            if [[ ${daysSinceLastPatch} -gt 777600 ]];then
+               shouldIRun='True'
+            fi
          fi
       ;;
       
@@ -147,6 +155,12 @@ function main()
 {
    setDefaults
    
+   if [[ -n ${configFile} ]];then
+      if [[ -s ${configFile} ]];then
+         source ${configFile}
+      fi
+   fi
+     
    while [[ "$#" > 0 ]]
    do
       key="${1}"
@@ -158,6 +172,14 @@ function main()
          
          -t=*|--updatetool=*)
             updatetool=${key#*=}
+         ;;
+
+         -s=*|--statusFile=*)
+            statusFile=${key#*=}
+         ;;
+
+         -c=*|--configFile=*)
+            configFile=${key#*=}
          ;;
 
          -f|--forceRun)
@@ -191,6 +213,12 @@ function main()
       esac
       shift
    done
+   
+   if [[ -n ${statusFile} ]];then
+      if [[ -s ${statusFile} ]];then
+         source ${statusFile}
+      fi
+   fi
    
    validateNeeds
    
@@ -247,6 +275,10 @@ function main()
          sendNotificationEmail
       fi
       if [[ "${shouldIReboot}" == "True" ]];then
+         if [[ -n ${statusFile} ]];then
+            nowDate=$(date +%s)
+            echo "lastPatchDate=${nowDate}" >  ${statusFile}
+         fi
          reboot
       fi
    fi
