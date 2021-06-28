@@ -24,6 +24,8 @@ function printHelp ()
 
 function setDefaults ()
 {
+   PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
+   export PATH
    api_key='xxx'
    api_secret='xxx'
    updatetool='yum'
