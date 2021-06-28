@@ -263,7 +263,7 @@ function main()
                body="${endDate} - installazione patches completate, non verra' eseguito reboot come da configurazione"
             fi
          else
-            subject "patching per ${myName} NON completato"
+            subject="patching per ${myName} NON completato"
             body="${endDate} - installazione patches fallita (${retCode})"
          fi
       else
