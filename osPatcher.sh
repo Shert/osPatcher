@@ -257,7 +257,7 @@ function main()
          endDate=$(date)
          if [[ ${retCode} -eq 0 ]];then
             if [[ ${disableReboot} == 'False' ]];then
-               subject "patching per ${myName} completato"
+               subject="patching per ${myName} completato"
                body="${endDate} - installazione patches completate, esecuzione reboot"
                shouldIReboot="True"
             else
@@ -277,6 +277,7 @@ function main()
          sendNotificationEmail
       fi
       if [[ "${shouldIReboot}" == "True" ]];then
+         subject="patching per ${myName} completato"
          if [[ -n ${statusFile} ]];then
             nowDate=$(date +%s)
             echo "lastPatchDate=${nowDate}" >  ${statusFile}
