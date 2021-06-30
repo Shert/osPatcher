@@ -39,7 +39,7 @@ function setDefaults ()
    whenToRun='never'
    recipients='costacmg-ux@eng.it'
    jsonRecipients=''
-   statusFile="osPatcher.stats"
+   statusFile="/tmp/osPatcher.stats"
    configFile=""
    lastPatchDate="0"
 }
