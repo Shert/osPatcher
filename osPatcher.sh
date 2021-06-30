@@ -1,17 +1,18 @@
 #!/bin/bash
 
-# Version 1.0
+# Version 1.0.1
 
 # patcher for linux deb/rpm based systems
 #
-# 2021-06-28 Mario Caruso
+# 2021-06-30 Mario Caruso
 #
 
 function printHelp ()
 {
    echo "Questo script aggiorna le patches di OS sul server in cui viene eseguito"
    echo "opzioni : -t=|--updatetool= (apt|yum)"
-   echo "opzioni : -s=|--statusFile= path del file dove e' salvata la data di ultima applicazione patches"
+   echo "opzioni : -s=|--statusFile= path assoluto del file dove e' salvata la data di ultima applicazione patches"
+   echo "opzioni : -us|--updateStatusFile Forza l'aggiornamento del file di Status"
    echo "opzioni : -c=|--configFile= path del file di configurazione"
    echo "opzioni : -f|--forceRun"
    echo "opzioni : -d|--dryrun"
@@ -31,6 +32,7 @@ function setDefaults ()
    updatetool='yum'
    dryRun="False"
    shouldIRun='False'
+   shouldIUpdateStatusFile='False'
    shouldIReboot='False'
    disableReboot='False'
    shouldISendEmail='True'
@@ -153,6 +155,14 @@ function generateJsonRecipients
    unset IFS
 }
 
+function updateStatusFile ()
+{
+   if [[ -n ${statusFile} ]];then
+      nowDate=$(date +%s)
+      echo "lastPatchDate=${nowDate}" >  ${statusFile}
+   fi
+}
+
 function main()
 {
    setDefaults
@@ -172,6 +182,10 @@ function main()
 
          -s=*|--statusFile=*)
             statusFile=${key#*=}
+         ;;
+         
+         -us|--updateStatusFile)
+            shouldIUpdateStatusFile="True"
          ;;
 
          -c=*|--configFile=*)
@@ -260,6 +274,7 @@ function main()
                subject="patching per ${myName} completato"
                body="${endDate} - installazione patches completate, esecuzione reboot"
                shouldIReboot="True"
+               shouldIUpdateStatusFile="True"
             else
                subject="patching per ${myName} completato"
                body="${endDate} - installazione patches completate, non verra' eseguito reboot come da configurazione"
@@ -275,13 +290,11 @@ function main()
       fi
       if [[ "${shouldISendEmail}" == "True" ]];then
          sendNotificationEmail
+      fi      
+      if [[ "${shouldIUpdateStatusFile}" == "True" ]];then
+         updateStatusFile
       fi
       if [[ "${shouldIReboot}" == "True" ]];then
-         subject="patching per ${myName} completato"
-         if [[ -n ${statusFile} ]];then
-            nowDate=$(date +%s)
-            echo "lastPatchDate=${nowDate}" >  ${statusFile}
-         fi
          reboot
       fi
    fi
