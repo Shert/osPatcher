@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Version 1.0.1
+# Version 1.0.2
 
 # patcher for linux deb/rpm based systems
 #
-# 2021-06-30 Mario Caruso
+# 2021-07-12 Mario Caruso
 #
 
 function printHelp ()
@@ -14,6 +14,8 @@ function printHelp ()
    echo "opzioni : -s=|--statusFile= path assoluto del file dove e' salvata la data di ultima applicazione patches"
    echo "opzioni : -us|--updateStatusFile Forza l'aggiornamento del file di Status"
    echo "opzioni : -c=|--configFile= path del file di configurazione"
+   echo "opzioni : -rs|--randomSleep esegue uno sleep per evitare di partire subito"
+   echo "opzioni : -rsm=|--randomSleepMax= il valore massimo per cui fare lo sleep"
    echo "opzioni : -f|--forceRun"
    echo "opzioni : -d|--dryrun"
    echo "opzioni : -nm|--noMail (non invia le e-mail di notifica)"
@@ -42,6 +44,14 @@ function setDefaults ()
    statusFile="/tmp/osPatcher.stats"
    configFile=""
    lastPatchDate="0"
+   shouldIrandomSleep='False'
+   randomSleepMax='120'
+}
+
+function randomSleep ()
+{
+   mySleep=$(expr $RANDOM % $randomSleepMax)
+   sleep ${mySleep}
 }
 
 function checkIfIShouldRun ()
@@ -131,9 +141,16 @@ function validateNeeds ()
       done
    
    ### validazione valore di myExpectedStart
-   if [[ ! "${whenToRun}" =~ ^(15|15+5|3Tue|2Wed|never|now) ]] ;then
+   if [[ ! "${whenToRun}" =~ ^(15|15+5|1Tue|3Tue|2Wed|never|now) ]] ;then
       echo "Error: value ${whenToRun} for whenToRun is not valid/accepted"
       exit 5
+   fi
+   
+   ### validazione valore di randomSleepMax
+   expr ${randomSleepMax} \/ 1 > /dev/null 2>/dev/null
+   if [[ $? -ne 0 ]];then
+      echo "Error: value ${randomSleepMax} for randomSleepMax is not valid (should be an integer)"
+      exit 6
    fi
 }
 
@@ -215,6 +232,14 @@ function main()
          -r=*|--recipients=*)
             recipients=${key#*=}
          ;;
+
+          -rs|--randomSleep)
+            shouldIrandomSleep="True"
+         ;;
+
+         -rsm=*|--randomSleepMax=*)
+            randomSleepMax=${key#*=}
+         ;;
          
          *)
             echo "parametro ${key} non gestito"
@@ -241,6 +266,11 @@ function main()
    checkIfIShouldRun
    
    if [[ "${shouldIRun}" == "True"  ]];then
+   
+      if [[ "${shouldIrandomSleep}" == "True" ]];then
+         randomSleep
+      fi
+      
       #echo "devo girare"
       myName=$(hostname -f)
       
