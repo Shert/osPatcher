@@ -336,7 +336,7 @@ function main()
             sendNotificationEmail
          fi
          
-         if [[ "{stopServices}" != "False" ]];then
+         if [[ "${stopServices}" != "False" ]];then
             IFS=','
             for currentService in ${stopServices}
             do
@@ -347,7 +347,7 @@ function main()
             unset IFS
          fi
 
-         if [[ "{stopCommands}" != "False" ]];then
+         if [[ "${stopCommands}" != "False" ]];then
             IFS=','
             for stopCommand in ${stopCommands}
             do
