@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Version 1.0.2
+# Version 1.0.3
 
 # patcher for linux deb/rpm based systems
 #
@@ -22,6 +22,11 @@ function printHelp ()
    echo "opzioni : -nr|--noReboot (non esegue il reboot del server)"
    echo "opzioni : -w=|--whenToRun= (15|15+5|1Tue|3Tue|2Wed|now)"
    echo "opzioni : -r=|--recipients= indirizzi email (separati da virgola) a cui inviare notifiche"
+   echo "opzioni : -sts=|--stopServices= servizi da fermare (tramite systemd) prima di eseguire il patching (nomi delle unit separati da virgola)"
+   echo "opzioni : -stc=|--stopCommands= comandi da eseguire prima di eseguire il patching (separati da virgola)"
+   echo "opzioni : -lf=|--logFacility="
+   echo "opzioni : -lt=|--logTag="
+   echo "opzioni : -ls|--logStandardOutput"
    echo "opzioni : -h=|--help= mostra questo help"
 }
 
@@ -46,12 +51,26 @@ function setDefaults ()
    lastPatchDate="0"
    shouldIrandomSleep='False'
    randomSleepMax='120'
+   stopServices="False"
+   stopCommands="False"
+   logFacility=local2.info
+   logTag="osPatcher"
+   logStandardOutput="False"
 }
 
 function randomSleep ()
 {
    mySleep=$(expr $RANDOM % $randomSleepMax)
    sleep ${mySleep}
+}
+
+function logMessages()
+{
+   logMessage=${1}
+      if [[ "${logStandardOutput}" == "True"  ]];then
+         echo "${logMessage}"
+      fi
+      logger -t ${logTag} -p ${logFacility} ${logMessage}
 }
 
 function checkIfIShouldRun ()
@@ -100,7 +119,8 @@ function checkIfIShouldRun ()
       ;;      
 
       never)
-         echo "Warning: no whenToRun specified, please specify a value"
+         logMessage="Warning: no whenToRun specified, please specify a value"
+         logMessages "${logMessage}"
       ;;
    esac
    
@@ -125,16 +145,18 @@ function sendNotificationEmail ()
 
 function validateNeeds ()
 {
-   needed=(grep awk mktemp date curl ${updatetool})
+   needed=(grep awk mktemp date curl logger ${updatetool})
    for ((i=0;i<${#needed[@]};i++))
       do
          bpath=$(which ${needed[i]})
          if [ -z "${bpath}" ];then
-            echo "Error: unable to find a valid ${needed[i]}"
+            logMessage="Error: unable to find a valid ${needed[i]}"
+            logMessages "${logMessage}"
             exit 2
          else
             if ! [ -x "${bpath}" ];then
-               echo "Error: ${needed[i]} is not executable"
+               logMessage="Error: ${needed[i]} is not executable"
+               logMessages "${logMessage}"
                exit 3
             fi
          fi
@@ -142,14 +164,16 @@ function validateNeeds ()
    
    ### validazione valore di myExpectedStart
    if [[ ! "${whenToRun}" =~ ^(15|15+5|1Tue|3Tue|2Wed|never|now) ]] ;then
-      echo "Error: value ${whenToRun} for whenToRun is not valid/accepted"
+      logMessage="Error: value ${whenToRun} for whenToRun is not valid/accepted"
+      logMessages "${logMessage}"
       exit 5
    fi
    
    ### validazione valore di randomSleepMax
    expr ${randomSleepMax} \/ 1 > /dev/null 2>/dev/null
    if [[ $? -ne 0 ]];then
-      echo "Error: value ${randomSleepMax} for randomSleepMax is not valid (should be an integer)"
+      logMessage="Error: value ${randomSleepMax} for randomSleepMax is not valid (should be an integer)"
+      logMessages "${logMessage}"
       exit 6
    fi
 }
@@ -241,8 +265,28 @@ function main()
             randomSleepMax=${key#*=}
          ;;
          
+         -sts=*|--stopServices=*)
+            stopServices=${key#*=}
+         ;;
+         
+         -stc=*|--stopCommands=*)
+            stopCommands=${key#*=}
+         ;;
+         
+         -lf=*|--logFacility=*)
+            logFacility=${key#*=}
+         ;;
+
+         -lt=*|--logTag=*)
+            logTag=${key#*=}
+         ;;
+         
+          -ls|--logStandardOutput)
+            logStandardOutput="True"
+         ;;
          *)
-            echo "parametro ${key} non gestito"
+            logMessage="parametro ${key} non gestito"
+            logMessages ${logMessage}
             exit 6
          ;;
       esac
@@ -291,6 +335,29 @@ function main()
          if [[ "${shouldISendEmail}" == "True" ]];then
             sendNotificationEmail
          fi
+         
+         if [[ "{stopServices}" != "False" ]];then
+            IFS=','
+            for currentService in ${stopServices}
+            do
+               unset IFS
+               systemctl  stop ${currentService}
+               IFS=','
+            done
+            unset IFS
+         fi
+
+         if [[ "{stopCommands}" != "False" ]];then
+            IFS=','
+            for stopCommand in ${stopCommands}
+            do
+               unset IFS
+               ${stopCommand}
+               IFS=','
+            done
+            unset IFS
+         fi
+         
          if [[ "${updatetool}" == "yum" ]];then
             ${updatetool} -y update
             retCode=$?
