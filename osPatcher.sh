@@ -286,7 +286,7 @@ function main()
          ;;
          *)
             logMessage="parametro ${key} non gestito"
-            logMessages ${logMessage}
+            logMessages "${logMessage}"
             exit 6
          ;;
       esac
@@ -311,7 +311,7 @@ function main()
    
    if [[ "${shouldIRun}" == "True"  ]];then
       logMessage="Starting patching procedures"
-      logMessages ${logMessage}
+      logMessages "${logMessage}"
       if [[ "${shouldIrandomSleep}" == "True" ]];then
          randomSleep
       fi
@@ -366,7 +366,7 @@ function main()
                retCode=$?
             else
                logMessage="nessun pacchetto da aggiornare"
-               logMessages ${logMessage}
+               logMessages "${logMessage}"
             fi
          elif [[ "${updatetool}" == "apt" ]];then
             ${updatetool} update && ${updatetool} -y upgrade
@@ -403,7 +403,7 @@ function main()
       fi
    else
       logMessage="Not the right time to do patching"
-      logMessages ${logMessage}
+      logMessages "${logMessage}"
    fi
 }
 
