@@ -310,7 +310,8 @@ function main()
    checkIfIShouldRun
    
    if [[ "${shouldIRun}" == "True"  ]];then
-   
+      logMessage="Starting patching procedures"
+      logMessages ${logMessage}
       if [[ "${shouldIrandomSleep}" == "True" ]];then
          randomSleep
       fi
@@ -359,8 +360,14 @@ function main()
          fi
          
          if [[ "${updatetool}" == "yum" ]];then
-            ${updatetool} -y update
-            retCode=$?
+            numUpdates=$(${updatetool} check-update | awk '/\S+\s+[0-9]\S+\s+\S+/ {print $1 }' | wc -l)
+            if [[ "${numUpdates}" != "0" ]];then
+               ${updatetool} -y update
+               retCode=$?
+            else
+               logMessage="nessun pacchetto da aggiornare"
+               logMessages ${logMessage}
+            fi
          elif [[ "${updatetool}" == "apt" ]];then
             ${updatetool} update && ${updatetool} -y upgrade
             retCode=$?
@@ -394,6 +401,9 @@ function main()
       if [[ "${shouldIReboot}" == "True" ]];then
          reboot
       fi
+   else
+      logMessage="Not the right time to do patching"
+      logMessages ${logMessage}
    fi
 }
 
