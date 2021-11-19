@@ -124,7 +124,7 @@ $cred = New-Object System.Management.Automation.PSCredential ($userName, $secPas
 ## provo la connessione smtp
 $smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
-if ($smtpTest.TcpTestSucceeded -ne 'True')
+if ($smtpTest -ne 'True')
 {
    Write-Output("Errore: impossibile contattare il server smtp $SmtpServer su porta $SmtpPort")
    Exit 3
