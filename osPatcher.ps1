@@ -3,6 +3,9 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
+$version=1.0.0
+
+Write-Output("Starting osPAtcher vers $version")
 
 $confFile='c:\EngScripts\osPatcher\osPatcher.ps1.conf'
 $confExists=(Test-Path -Path $confFile)
