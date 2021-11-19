@@ -77,16 +77,49 @@ else
 
 }
 
+if ($ExternalVariables.containsKey('smtpServer'))
+{
+   $smtpServer = $ExternalVariables.smtpServer
+}
+else
+{
+   Write-Output("Errore: il file di configurazione $confFile non contiene un valore per smtpServer")
+   Exit 2
+
+}
+
+if ($ExternalVariables.containsKey('smtpPort'))
+{
+   $smtpPort = $ExternalVariables.smtpPort
+   try
+   {
+      $intSmtpPort = [int]$smtpPort
+      if ( -not ( ($intSmtpPort -gt 0 ) -and ($intSmtpPort -lt 65535) ))
+      {
+         Write-Output("Errore: $smtpPort non e' un valore valido di porta TCP")
+         exit 6
+      }
+   }
+   catch 
+   {
+      Write-Output("Errore: $smtpPort non e' un valore intero ")
+      exit 5
+   }
+}
+else
+{
+   Write-Output("Errore: il file di configurazione $confFile non contiene un valore per smtpServer")
+   Exit 2
+
+}
 
 $secPasswd = ConvertTo-SecureString $password -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($userName, $secPasswd)
 
-# Server Info
-$smtpServer = "in-v3.mailjet.com"
-$smtpPort = "587"
+
 
 ## provo la connessione smtp
-$smtpTest=(tnc -computername $SmtpServer -port $SmtpPort)
+$smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
 if ($smtpTest.TcpTestSucceeded -ne 'True')
 {
