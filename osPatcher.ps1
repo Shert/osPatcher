@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.0"
+$version="1.0.1"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -149,7 +149,7 @@ if ( $foundUpdates.count -gt 0 )
                                    -Subject $MessageSubject -body $body
 
       # verifico se un reboot e' necessario
-      $needReboot=(Get-WURebootStatus).RebootRequired
+      $needReboot=(Get-WURebootStatus -Silent)
       Write-Output("Reboot necessario: $needReboot")
 
       # scarico e installo gli updates
@@ -164,7 +164,7 @@ if ( $foundUpdates.count -gt 0 )
          $MessageSubject = "patching per $myhostname completato"
       } 
 
-      if ( $needReboot.RebootRequired -eq 'True' )
+      if ( $needReboot -eq 'True' )
         {
             $body += "`n `n eseguo reboot per terminare il patching"
             Send-MailMessage -SmtpServer $smtpServer `
