@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.2"
+$version="1.0.3"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -153,7 +153,7 @@ if ( $foundUpdates.count -gt 0 )
       Write-Output("Reboot necessario: $needReboot")
 
       # scarico e installo gli updates
-      $patchResult=(Install-WindowsUpdate -AcceptAll)
+      $patchResult=(Install-WindowsUpdate -AcceptAll -IgnoreReboot)
       $body=$patchResult | Out-String
       if ($patchResult.Result.contains('Failed') )
       {
