@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.1"
+$version="1.0.2"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -134,7 +134,7 @@ $myhostname=hostname
 
 # verifico se ci sono updates
 #$numUpdates=(Get-WindowsUpdate).count
-$foundUpdates=(Get-WindowsUpdate)
+$foundUpdates=(Get-WindowsUpdate -IgnoreReboot)
 
 if ( $foundUpdates.count -gt 0 )
    {
