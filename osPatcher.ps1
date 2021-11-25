@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.3"
+$version="1.0.5"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -134,7 +134,7 @@ $myhostname=hostname
 
 # verifico se ci sono updates
 #$numUpdates=(Get-WindowsUpdate).count
-$foundUpdates=(Get-WindowsUpdate -IgnoreReboot)
+$foundUpdates=(Get-WuList)
 
 if ( $foundUpdates.count -gt 0 )
    {
@@ -147,22 +147,44 @@ if ( $foundUpdates.count -gt 0 )
                                    -Credential $cred -port $smtpPort `
                                    -From $MailFrom -To $MailTo `
                                    -Subject $MessageSubject -body $body
-
-      # verifico se un reboot e' necessario
-      $needReboot=(Get-WURebootStatus -Silent)
-      Write-Output("Reboot necessario: $needReboot")
-
-      # scarico e installo gli updates
+      
+      # scarico gli aggiornamenti senza installarli
+      $downloadOutput=(Download-WindowsUpdate -AcceptAll)
+      
+      ## verifico se il download e' andato a buon fine 
+      ## se qualche patch non e' stata scaricata applico lo stesso quelle che ho
+      $downloadStatus="OK"
+      foreach ($i in $downloadOutput)
+      {
+         if ( $i.result -ne "Downloaded" )
+         {
+            $downloadStatus="KO"
+         }
+      }
+      
+      if ( $downloadStatus -eq "KO" )
+      {
+         $body=$downloadOutput | Out-String
+         $body+="`n`nProblema nel download di alcune patch"
+      }
+      
+      
+      ## installo gli updates
       $patchResult=(Install-WindowsUpdate -AcceptAll -IgnoreReboot)
-      $body=$patchResult | Out-String
+      $body+=$patchResult | Out-String
+      
       if ($patchResult.Result.contains('Failed') )
       {
          $MessageSubject = "installazione fallita per alcune patch su $myhostname"
       }
       else
       {
-         $MessageSubject = "patching per $myhostname completato"
+         $MessageSubject = "patching per $myhostname completato con successo"
       } 
+      
+      # verifico se un reboot e' necessario
+      $needReboot=(Get-WURebootStatus -Silent)
+      Write-Output("Reboot necessario: $needReboot")
 
       if ( $needReboot -eq 'True' )
         {
