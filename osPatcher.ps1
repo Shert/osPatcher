@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.5"
+$version="1.0.6"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -116,12 +116,33 @@ else
 
 }
 
+if ($ExternalVariables.containsKey('skipReboot'))
+{
+   $skipReboot = $ExternalVariables.skipReboot
+}
+else
+{
+   $skipReboot = "False"
+}
+
+if ($ExternalVariables.containsKey('debug'))
+{
+   $debug = $ExternalVariables.debug
+}
+else
+{
+   $debug = "False"
+}
+
+
 $secPasswd = ConvertTo-SecureString $password -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($userName, $secPasswd)
 
 
 
 ## provo la connessione smtp
+if ($debug -eq "True") { Write-Output("provo la connessione smtp $SmtpServer:$SmtpPort") }
+
 $smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
 if ($smtpTest -ne 'True')
@@ -135,6 +156,7 @@ $myhostname=hostname
 # verifico se ci sono updates
 #$numUpdates=(Get-WindowsUpdate).count
 $foundUpdates=(Get-WuList)
+if ($debug -eq "True") { Write-Output("trovate : `n $foundUpdates") }
 
 if ( $foundUpdates.count -gt 0 )
    {
@@ -142,7 +164,7 @@ if ( $foundUpdates.count -gt 0 )
       $MessageSubject = "inizio patching per $myhostname"
       $body = $foundUpdates | Out-String
       $body += "`n`n ci sono $numUpdates aggiornamenti da installare"
-      Write-Output("$body")
+      if ($debug -eq "True") { Write-Output("$body") }
       Send-MailMessage -SmtpServer $smtpServer `
                                    -Credential $cred -port $smtpPort `
                                    -From $MailFrom -To $MailTo `
@@ -150,7 +172,7 @@ if ( $foundUpdates.count -gt 0 )
       
       # scarico gli aggiornamenti senza installarli
       $downloadOutput=(Download-WindowsUpdate -AcceptAll)
-      
+      if ($debug -eq "True") { Write-Output("$downloadOutput") }
       ## verifico se il download e' andato a buon fine 
       ## se qualche patch non e' stata scaricata applico lo stesso quelle che ho
       $downloadStatus="OK"
@@ -171,6 +193,7 @@ if ( $foundUpdates.count -gt 0 )
       
       ## installo gli updates
       $patchResult=(Install-WindowsUpdate -AcceptAll -IgnoreReboot)
+      if ($debug -eq "True") { Write-Output("$patchResult") }
       $body+=$patchResult | Out-String
       
       if ($patchResult.Result.contains('Failed') )
@@ -184,9 +207,10 @@ if ( $foundUpdates.count -gt 0 )
       
       # verifico se un reboot e' necessario
       $needReboot=(Get-WURebootStatus -Silent)
-      Write-Output("Reboot necessario: $needReboot")
+      
+      if ($debug -eq "True") { Write-Output("Reboot necessario: $needReboot") }
 
-      if ( $needReboot -eq 'True' )
+      if ( ( $needReboot -eq 'True' ) -and ($skipReboot -eq 'False') )
         {
             $body += "`n `n eseguo reboot per terminare il patching"
             Send-MailMessage -SmtpServer $smtpServer `
@@ -195,6 +219,15 @@ if ( $foundUpdates.count -gt 0 )
                                          -Subject $MessageSubject -body $body
             shutdown /r /t 15 /c "os Patching"
         }
+      elseif ( ( $needReboot -eq 'True' ) -and ($skipReboot -eq 'True') )
+         {
+            $body += "`n `n dovrei eseguire reboot per terminare il patching ma skipreboot vale True"
+            Send-MailMessage -SmtpServer $smtpServer `
+                                        -Credential $cred -port $smtpPort `
+                                        -From $MailFrom -To $MailTo `
+                                        -Subject $MessageSubject -body $body
+
+         }
       else
         {
            $body = "reboot non necessario"
