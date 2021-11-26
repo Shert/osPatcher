@@ -141,7 +141,7 @@ $cred = New-Object System.Management.Automation.PSCredential ($userName, $secPas
 
 
 ## provo la connessione smtp
-if ($debug -eq "True") { Write-Output("provo la connessione smtp ${SmtpServer}:${SmtpPort}") }
+if ($debug -eq "True") { Write-Output("provo la connessione smtp ${SmtpServer} : ${SmtpPort}") }
 
 $smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
