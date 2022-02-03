@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.7"
+$version="1.0.8"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -134,6 +134,15 @@ else
    $debug = "False"
 }
 
+if ($ExternalVariables.containsKey('smtpMandatory'))
+{
+   $debug = $ExternalVariables.debug
+}
+else
+{
+   $smtpMandatory = "True"
+}
+
 
 $secPasswd = ConvertTo-SecureString $password -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($userName, $secPasswd)
@@ -145,7 +154,7 @@ if ($debug -eq "True") { Write-Output("provo la connessione smtp ${SmtpServer} :
 
 $smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
-if ($smtpTest -ne 'True')
+if ($smtpTest -ne 'True' -And $smtpMandatory -eq 'True' )
 {
    Write-Output("Errore: impossibile contattare il server smtp $SmtpServer su porta $SmtpPort")
    Exit 3
@@ -165,10 +174,13 @@ if ( $foundUpdates.count -gt 0 )
       $body = $foundUpdates | Out-String
       $body += "`n`n ci sono $numUpdates aggiornamenti da installare"
       if ($debug -eq "True") { Write-Output("$body") }
-      Send-MailMessage -SmtpServer $smtpServer `
+      if ($smtpTest -eq 'True' -And $smtpMandatory -eq 'True' )
+      {
+         Send-MailMessage -SmtpServer $smtpServer `
                                    -Credential $cred -port $smtpPort `
                                    -From $MailFrom -To $MailTo `
                                    -Subject $MessageSubject -body $body
+      }
       
       # scarico gli aggiornamenti senza installarli
       $downloadOutput=(Download-WindowsUpdate -AcceptAll)
@@ -213,28 +225,36 @@ if ( $foundUpdates.count -gt 0 )
       if ( ( $needReboot -eq 'True' ) -and ($skipReboot -eq 'False') )
         {
             $body += "`n `n eseguo reboot per terminare il patching"
-            Send-MailMessage -SmtpServer $smtpServer `
+            if ($smtpTest -eq 'True' -And $smtpMandatory -eq 'True' )
+            {
+               Send-MailMessage -SmtpServer $smtpServer `
                                          -Credential $cred -port $smtpPort `
                                          -From $MailFrom -To $MailTo `
                                          -Subject $MessageSubject -body $body
+            }
             shutdown /r /t 15 /c "os Patching"
         }
       elseif ( ( $needReboot -eq 'True' ) -and ($skipReboot -eq 'True') )
          {
             $body += "`n `n dovrei eseguire reboot per terminare il patching ma skipreboot vale True"
-            Send-MailMessage -SmtpServer $smtpServer `
+            if ($smtpTest -eq 'True' -And $smtpMandatory -eq 'True' )
+            {
+               Send-MailMessage -SmtpServer $smtpServer `
                                         -Credential $cred -port $smtpPort `
                                         -From $MailFrom -To $MailTo `
                                         -Subject $MessageSubject -body $body
-
+            }
          }
       else
         {
-           $body = "reboot non necessario"
-           Send-MailMessage -SmtpServer $smtpServer `
+            if ($smtpTest -eq 'True' -And $smtpMandatory -eq 'True' )
+            {
+               $body = "reboot non necessario"
+               Send-MailMessage -SmtpServer $smtpServer `
                                         -Credential $cred -port $smtpPort `
                                         -From $MailFrom -To $MailTo `
                                         -Subject $MessageSubject -body $body
+            }
         }
    }
 else
