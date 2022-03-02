@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.9"
+$version="1.0.10"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -154,6 +154,10 @@ if ($debug -eq "True") { Write-Output("provo la connessione smtp ${SmtpServer} :
 
 $smtpTest=(tnc -computername $SmtpServer -port $SmtpPort -InformationLevel Quiet)
 
+if ($debug -eq "True") { 
+	Write-Output("${smtpTest}:"+${smtpTest}+",${smtpMandatory}:"+${smtpMandatory}) 
+								}
+
 if ($smtpTest -ne 'True' -And $smtpMandatory -eq 'True' )
 {
    Write-Output("Errore: impossibile contattare il server smtp $SmtpServer su porta $SmtpPort")
@@ -164,6 +168,7 @@ $myhostname=hostname
 
 # verifico se ci sono updates
 #$numUpdates=(Get-WindowsUpdate).count
+
 $foundUpdates=(Get-WuList)
 if ($debug -eq "True") { Write-Output("trovate : `n $foundUpdates") }
 
