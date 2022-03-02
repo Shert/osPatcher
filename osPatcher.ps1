@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.8"
+$version="1.0.9"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -136,7 +136,7 @@ else
 
 if ($ExternalVariables.containsKey('smtpMandatory'))
 {
-   $debug = $ExternalVariables.debug
+   $smtpMandatory = $ExternalVariables.smtpMandatory
 }
 else
 {
