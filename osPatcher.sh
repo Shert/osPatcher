@@ -1,16 +1,9 @@
 #!/bin/bash
 
-# Version 1.0.3
-
-# patcher for linux deb/rpm based systems
-#
-# 2021-07-12 Mario Caruso
-#
-
 function printHelp ()
 {
    echo "Questo script aggiorna le patches di OS sul server in cui viene eseguito"
-   echo "opzioni : -t=|--updatetool= (apt|yum)"
+   echo "opzioni : -t=|--updatetool= (apt|yum|zypper)"
    echo "opzioni : -s=|--statusFile= path assoluto del file dove e' salvata la data di ultima applicazione patches"
    echo "opzioni : -us|--updateStatusFile Forza l'aggiornamento del file di Status"
    echo "opzioni : -c=|--configFile= path del file di configurazione"
@@ -28,10 +21,12 @@ function printHelp ()
    echo "opzioni : -lt=|--logTag="
    echo "opzioni : -ls|--logStandardOutput"
    echo "opzioni : -h=|--help= mostra questo help"
+   echo "opzioni : -v|--version mostra la versione di osPatcher"
 }
 
 function setDefaults ()
 {
+   version='1.0.4'
    PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
    export PATH
    api_key='xxx'
@@ -217,6 +212,11 @@ function main()
             exit 0
          ;;
          
+          -v|--version)
+            echo "osPatcher reelease : ${version}"
+            exit 0
+         ;;
+
          -t=*|--updatetool=*)
             updatetool=${key#*=}
          ;;
@@ -284,6 +284,7 @@ function main()
           -ls|--logStandardOutput)
             logStandardOutput="True"
          ;;
+         
          *)
             logMessage="parametro ${key} non gestito"
             logMessages "${logMessage}"
@@ -326,13 +327,7 @@ function main()
       if [[ "${dryRun}" == "False" ]];then
          startDate=$(date)
          subject="inizio patching per ${myName}"
-         if [[ "${updatetool}" == "yum" ]];then
-            command="${updatetool} -y update"
-            body="${startDate} - avvio ${updatetool} update"
-         elif [[ "${updatetool}" == "apt" ]];then
-            command="${updatetool} update && ${updatetool} -y upgrade"
-            body="${startDate} - avvio ${updatetool} upgrade"
-         fi
+
          if [[ "${shouldISendEmail}" == "True" ]];then
             sendNotificationEmail
          fi
@@ -358,8 +353,10 @@ function main()
             done
             unset IFS
          fi
-         
+
+         ### blocco YUM         
          if [[ "${updatetool}" == "yum" ]];then
+            body="${startDate} - avvio yum"
             numUpdates=$(${updatetool} check-update | awk '/\S+\s+[0-9]\S+\s+\S+/ {print $1 }' | wc -l)
             if [[ "${numUpdates}" != "0" ]];then
                ${updatetool} -y update
@@ -368,9 +365,34 @@ function main()
                logMessage="nessun pacchetto da aggiornare"
                logMessages "${logMessage}"
             fi
+         ### blocco APT
          elif [[ "${updatetool}" == "apt" ]];then
-            ${updatetool} update && ${updatetool} -y upgrade
-            retCode=$?
+            body="${startDate} - avvio apt"
+            apt-get update -q
+            if [[ $? -eq 0 ]];then
+               numUpdates=$(apt-get -u upgrade -y -qq --print-uris | wc -l)
+               if [[ ${numUpdates} -gt 0 ]];then
+                  apt-get -u upgrade -y -q
+                  retCode=$?
+            else
+                  logMessage="nessun pacchetto da aggiornare"
+                  logMessages "${logMessage}"
+            fi
+            else
+               logMessage="apt-get update non e' uscito correttamente, interrompo il patching"
+               logMessages "${logMessage}"
+            fi
+         ### blocco ZYPPER
+         elif [[ "${updatetool}" == "zypper" ]];then
+            body="${startDate} - avvio zypper"
+            numUpdates=$(zypper list-patches --category security | grep "patches needed" | awk '{ print $1 }')
+            if [[ "${numUpdates}" != "0" ]];then
+               zypper patch --category security --auto-agree-with-licenses
+               retCode=$?
+            else
+               logMessage="nessun pacchetto da aggiornare"
+               logMessages "${logMessage}"
+            fi
          fi
          endDate=$(date)
          if [[ ${retCode} -eq 0 ]];then
