@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+
 function printHelp ()
 {
    echo "Questo script aggiorna le patches di OS sul server in cui viene eseguito"
@@ -12,6 +14,7 @@ function printHelp ()
    echo "opzioni : -f|--forceRun"
    echo "opzioni : -d|--dryrun"
    echo "opzioni : -nm|--noMail (non invia le e-mail di notifica)"
+   echo "opzioni : -nap|--noAckPatrol (non crea il file ack per Patrol)"
    echo "opzioni : -nr|--noReboot (non esegue il reboot del server)"
    echo "opzioni : -w=|--whenToRun= (15|15+5|1Tue|3Tue|2Wed|now)"
    echo "opzioni : -r=|--recipients= indirizzi email (separati da virgola) a cui inviare notifiche"
@@ -26,7 +29,7 @@ function printHelp ()
 
 function setDefaults ()
 {
-   version='1.0.4'
+   version='1.0.5'
    PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
    export PATH
    api_key='xxx'
@@ -38,6 +41,7 @@ function setDefaults ()
    shouldIReboot='False'
    disableReboot='False'
    shouldISendEmail='True'
+   shouldIAckPatrol='True'
    whenToRun='never'
    recipients='costacmg-ux@eng.it'
    jsonRecipients=''
@@ -51,6 +55,24 @@ function setDefaults ()
    logFacility=local2.info
    logTag="osPatcher"
    logStandardOutput="False"
+}
+
+
+function ackPatrol ()
+{
+   ## todo : implementare patrolack per evitare ticket di systemuptime
+   ## /userhome/patmon/Patrol3/Linux-2-6-x86-64-nptl/uptime.ack
+   ## /userhome/patmon/Patrol3/uptime.ack
+   patDirs=(/userhome/patmon/Patrol3/Linux-2-6-x86-64-nptl /userhome/patmon/Patrol3)
+   for myDir in ${patDirs[@]}
+   do
+      test -d ${myDir}
+      if [[ $? -eq 0 ]];then
+         echo "1" > ${myDir}/uptime.ack
+         chmod 660 ${myDir}/uptime.ack
+         chown patmon:adm ${myDir}/uptime.ack
+      fi
+   done
 }
 
 function randomSleep ()
@@ -285,6 +307,10 @@ function main()
             logStandardOutput="True"
          ;;
          
+         -nap|--noAckPatrol)
+            shouldIAckPatrol="False"
+         ;;
+         
          *)
             logMessage="parametro ${key} non gestito"
             logMessages "${logMessage}"
@@ -419,6 +445,9 @@ function main()
       fi      
       if [[ "${shouldIUpdateStatusFile}" == "True" ]];then
          updateStatusFile
+      fi
+      if [[ "${shouldIAckPatrol}" == "True" ]];then
+         ackPatrol
       fi
       if [[ "${shouldIReboot}" == "True" ]];then
          reboot
