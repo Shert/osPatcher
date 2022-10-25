@@ -3,7 +3,7 @@
 ## possibilita' di fare connessioni su porta 587 (outgoing)
 ## possibilita' di scaricare dai repository windows update (http/https)
 ## un file di configurazione  osPatcher.conf in the format key = value 
-$version="1.0.11"
+$version="1.0.12"
 
 Write-Output("Starting osPatcher vers $version")
 
@@ -20,7 +20,7 @@ $ExternalVariables = Get-Content -raw -Path $confFile | ConvertFrom-StringData
 
 if ($ExternalVariables.containsKey('MailFrom'))
 {
-   $MailFrom = $ExternalVariables.MailFrom
+   $MailFrom = $ExternalVariables. MailFrom
    try 
    {
       $null = [mailaddress]$MailFrom
@@ -247,7 +247,7 @@ if ( $foundUpdates.count -gt 0 )
                                          -From $MailFrom -To $MailTo `
                                          -Subject $MessageSubject -body $body
             }
-            shutdown /r /t 15 /c "os Patching"
+            shutdown /r /t 15 /f /c "os Patching"
         }
       elseif ( ( $needReboot -eq 'True' ) -and ($skipReboot -eq 'True') )
          {
