@@ -16,7 +16,7 @@ function printHelp ()
    echo "opzioni : -nm|--noMail (non invia le e-mail di notifica)"
    echo "opzioni : -nap|--noAckPatrol (non crea il file ack per Patrol)"
    echo "opzioni : -nr|--noReboot (non esegue il reboot del server)"
-   echo "opzioni : -w=|--whenToRun= (15|15+5|1Tue|3Tue|2Wed|now)"
+   echo "opzioni : -w=|--whenToRun= (10|15|15+5|1Tue|3Tue|2Wed|now)"
    echo "opzioni : -r=|--recipients= indirizzi email (separati da virgola) a cui inviare notifiche"
    echo "opzioni : -sts=|--stopServices= servizi da fermare (tramite systemd) prima di eseguire il patching (nomi delle unit separati da virgola)"
    echo "opzioni : -stc=|--stopCommands= comandi da eseguire prima di eseguire il patching (separati da virgola)"
@@ -29,7 +29,7 @@ function printHelp ()
 
 function setDefaults ()
 {
-   version='1.0.5'
+   version='1.0.6'
    PATH="/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin"
    export PATH
    api_key='xxx'
@@ -98,6 +98,12 @@ function checkIfIShouldRun ()
    dayOfWeek=$(LC_TIME=C date +%a)
    dayOfMonth=$(date +%d)
    case ${whenToRun} in
+      10)
+         if [[ "${dayOfMonth}" == "${whenToRun}" ]];then
+            shouldIRun='True'
+         fi
+      ;;
+      
       15)
          if [[ "${dayOfMonth}" == "${whenToRun}" ]];then
             shouldIRun='True'
@@ -180,7 +186,7 @@ function validateNeeds ()
       done
    
    ### validazione valore di myExpectedStart
-   if [[ ! "${whenToRun}" =~ ^(15|15+5|1Tue|3Tue|2Wed|never|now) ]] ;then
+   if [[ ! "${whenToRun}" =~ ^(10|15|15+5|1Tue|3Tue|2Wed|never|now) ]] ;then
       logMessage="Error: value ${whenToRun} for whenToRun is not valid/accepted"
       logMessages "${logMessage}"
       exit 5
